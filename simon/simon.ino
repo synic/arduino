@@ -5,7 +5,7 @@ const int ERROR_NOTE = NOTE_A2;
 
 const int LEDS[4] = {0, 1, 2, 3};           // the four LED output pins
 const int ERROR_LED = 7;
-const int NOTE_LEDS = {LED[0], LED[1], LED[2], LED[3], ERROR_LED};
+const int NOTE_LEDS[5] = {LEDS[0], LEDS[1], LEDS[2], LEDS[3], ERROR_LED};
 
 const int BUTTONS[4] = {8, 9, 10, 11};      // the four button input pins
 const int SPEAKER = 6;
@@ -63,7 +63,7 @@ void gameWon() {
 
 int buttonPressed() {
     for(int i = 0; i < 4; i++) {
-        if(digitalRead(BUTTONS[i] == HIGH) {
+        if(digitalRead(BUTTONS[i]) == HIGH) {
             return i;
         }
     }
@@ -73,7 +73,7 @@ int buttonPressed() {
 
 void loop() {
     if(inputMode == false) {
-        setupLevel(level);
+        setupLevel();
         inputMode = true;
     }
 
