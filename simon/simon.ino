@@ -15,7 +15,7 @@ int levelSequence[10] = {0};                // the level sequence
 int level = 1;                              // the current level
 bool inputMode = false;
 int currentStep = -1;
-int noteDuration = 500;
+int noteDuration = 700;
 int pauseDuration = 500;
 
 void setup() {
@@ -43,6 +43,22 @@ void playNote(int note) {
     delay(pauseDuration);
     noTone(SPEAKER);
     digitalWrite(NOTE_LEDS[note], LOW);
+}
+
+void gameOver() {
+    digitalWrite(ERROR_LED, HIGH);
+    tone(SPEAKER, ERROR_NOTE, 1000);
+    noTone(SPEAKER);
+}
+
+void gameWon() {
+    for(int i = 0; i < 4; i++) {
+        digitalWrite(LEDS[i], HIGH);
+        tone(SPEAKER, NOTES[2], 300);
+        delay(200);
+        noTone(SPEAKER);
+        digitalWrite(LEDS[i], LOW);
+    }
 }
 
 int buttonPressed() {
