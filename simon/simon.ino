@@ -31,7 +31,6 @@ const int LEDS[4] = {LED0, LED1, LED2, LED3};  // the four LED output pins
 const int NOTES_FOR_BUTTON[4] = {NOTE_E3, NOTE_CSHARP3, NOTE_A3, NOTE_E2};
 const int ERROR_NOTE = NOTE_A2;
 const int WON_NOTE = NOTE_A3;
-const int NOTE_LEDS[5] = {LED0, LED1, LED2, LED3};
 
 /* Button setup */
 const int BUTTON1 = 8;
@@ -106,11 +105,9 @@ void setupLevel() {
     Plays a note
 */
 void playTone(int note, long toneDuration, long pauseDuration) {
-    digitalWrite(NOTE_LEDS[note], HIGH);
     tone(SPEAKER, note, noteDuration);
-    delay(pauseDuration);
     noTone(SPEAKER);
-    digitalWrite(NOTE_LEDS[note], LOW);
+    if(pauseDuration > 0) delay(pauseDuration);
 }
 
 /**
