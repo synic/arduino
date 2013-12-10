@@ -1,3 +1,21 @@
+/*
+    Simon Game Clone
+
+    A game of memory and skill!
+
+    circuit:
+    
+    * Blue LED connected to digital pin 0
+    * Yellow LED connected to digital pin 1
+    * Red LEDs connected to digital pins 2 and 7
+    * Green LED connected to digital pin 3
+    * 8 OHM speaker connected to digital pin 6
+    * buttons connected to digital pins 8, 9, 10, and 11
+
+    created 10 Dec 2013
+    by Adam Olsen <arolsen@gmail.com>
+*/
+
 #include "pitches.h"
 
 const int NOTES[4] = {NOTE_E3, NOTE_CSHARP3, NOTE_A3, NOTE_E2};
@@ -18,6 +36,9 @@ int currentStep = -1;
 int noteDuration = 700;
 int pauseDuration = 500;
 
+/**
+    Sets up the app
+*/
 void setup() {
     for(int i = 0; i < 4; i++) {
         pinMode(LEDS[i], OUTPUT);
@@ -28,6 +49,9 @@ void setup() {
     randomSeed(analogRead(0));
 }
 
+/**
+    Sets up the level sequence
+*/
 void setupLevel() {
     currentStep = -1;
     for(int i = 0; i < level; i++) {
@@ -37,6 +61,9 @@ void setupLevel() {
     }
 }
 
+/**
+    Plays a note
+*/
 void playNote(int note) {
     digitalWrite(NOTE_LEDS[note], HIGH);
     tone(SPEAKER, note, noteDuration);
@@ -45,12 +72,18 @@ void playNote(int note) {
     digitalWrite(NOTE_LEDS[note], LOW);
 }
 
+/**
+    Plays the game over sound and lights the red error LED
+*/
 void gameOver() {
     digitalWrite(ERROR_LED, HIGH);
     tone(SPEAKER, ERROR_NOTE, 1000);
     noTone(SPEAKER);
 }
 
+/**
+    Plays the game won sound and flashes all the LEDs
+**/
 void gameWon() {
     for(int i = 0; i < 4; i++) {
         digitalWrite(LEDS[i], HIGH);
@@ -61,6 +94,9 @@ void gameWon() {
     }
 }
 
+/**
+    Determines if a button has been pressed
+*/
 int buttonPressed() {
     for(int i = 0; i < 4; i++) {
         if(digitalRead(BUTTONS[i]) == HIGH) {
@@ -71,6 +107,7 @@ int buttonPressed() {
     return -1;
 }
 
+/** Main loop **/
 void loop() {
     if(inputMode == false) {
         setupLevel();
