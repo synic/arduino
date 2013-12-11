@@ -213,7 +213,7 @@ void loop() {
         inputMode = true;
     }
     else {
-        // check to see if they've taken to long to press a button
+        // check to see if they've taken too long to press a button
         if(millis() - lastButtonPress > INPUT_TIMEOUT) {
             gameOver();
             return;
