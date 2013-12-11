@@ -19,28 +19,52 @@
 #include "pitches.h"
 #include "ButtonEvent.h"
 
-/* LED setup */
-const int LED0 = 12;
-const int LED1 = 11;
-const int LED2 = 10;
-const int LED3 = 9;
+/******************************************************************************
+*                                 LED SETUP                                   *
+******************************************************************************/
+const int LED1 = 12;
+const int LED2 = 11;
+const int LED3 = 10;
+const int LED4 = 9;
+// optional, by default LED5 won't be used, unless you change INPUTS below to
+// 5 as well.
+const int LED5 = 8; 
 const int ERROR_LED = 7;
-const int LEDS[4] = {LED0, LED1, LED2, LED3};  // the four LED output pins
+const int LEDS[5] = {LED1, LED2, LED3, LED4, LED5};  // the four LED output pins
 
-/* Note setup */
-const int NOTES_FOR_BUTTON[4] = {NOTE_E3, NOTE_CSHARP3, NOTE_A3, NOTE_E2};
-const int ERROR_NOTE = NOTE_A2;
-const int WON_NOTE = NOTE_A3;
-
-/* Button setup */
+/******************************************************************************
+*                                 BUTTON SETUP                                *
+******************************************************************************/
 const int BUTTON1 = 5;
 const int BUTTON2 = 2;
 const int BUTTON3 = 6;
 const int BUTTON4 = 4;
-const int BUTTONS[4] = {BUTTON1, BUTTON2, BUTTON3, BUTTON4}; 
+// optional, by default BUTTON5 won't be used, unless you change INPUTS below to
+// 5 as well.
+const int BUTTON5 = 2;
+const int BUTTONS[5] = {BUTTON1, BUTTON2, BUTTON3, BUTTON4, BUTTON5}; 
 
-/* other */
+/******************************************************************************
+*                                 TONE SETUP                                  *
+******************************************************************************/
+const int TONES_FOR_BUTTON[5] = {NOTE_E3, NOTE_CSHARP3, NOTE_A3, NOTE_E2,
+    NOTE_A2};
+const int ERROR_TONE = NOTE_C2;
+const int WON_TONE = NOTE_A3;
+
+/******************************************************************************
+*                                SPEAKER SETUP                                *
+******************************************************************************/
 const int SPEAKER = 3;
+
+/******************************************************************************
+*                                   OTHER                                     *
+******************************************************************************/
+
+// INPUTS is the maximum number of inputs (buttons) and LEDs.  There is a
+// maximum of 5 available (you must define digital arduino PINS for each one
+// above
+const int INPUTS = 4; 
 const int MAX_LEVELS = 50;
 const int NEXT_GAME_PAUSE_DURATION = 800; 
 const bool INCREASE_SPEED = true;
@@ -48,14 +72,14 @@ const int INCREASE_SPEED_LEVELS = 5; // number of levels before speed increase
 const int INCREASE_SPEED_AMOUNT = 30; // number of ms to increase the speed
 const int MAX_SPEED = 200;           // max game speed
 const int INPUT_TIMEOUT = 6000;      // amount of time you have to move
-const int INITIAL_NOTE_DURATION = 500;
+const int INITIAL_TONE_DURATION = 500;
 const int PAUSE_DURATION = 200;
 
 int levelSequence[10] = {0};                // the level sequence
 int level = 1;                              // the current level
 bool inputMode = false;
 int currentStep = -1;
-int noteDuration = INITIAL_NOTE_DURATION;
+int toneDuration = INITIAL_TONE_DURATION;
 bool buttonDown = false;
 unsigned long lastButtonPress = 0;
 
@@ -64,7 +88,7 @@ unsigned long lastButtonPress = 0;
 */
 void setup() {
     Serial.begin(9600);
-    for(int i = 0; i < 4; i++) {
+    for(int i = 0; i < INPUTS; i++) {
         Serial.print("Adding button: ");
         Serial.println(BUTTONS[i]);
         ButtonEvent.addButton(BUTTONS[i], onDown, onUp, NULL, 0, NULL, 0);
@@ -78,10 +102,10 @@ void setup() {
 void onDown(ButtonInformation* sender) {
     if(!inputMode || buttonDown) return;
 
-    for(int i = 0; i < 4; i++) {
+    for(int i = 0; i < INPUTS; i++) {
         if(BUTTONS[i] == sender->pin) {
             digitalWrite(LEDS[i], HIGH);
-            tone(SPEAKER, NOTES_FOR_BUTTON[i]);
+            tone(SPEAKER, TONES_FOR_BUTTON[i]);
             buttonDown = true;
             lastButtonPress = millis();
             return;
@@ -93,7 +117,7 @@ void onUp(ButtonInformation* sender) {
     if(!inputMode || !buttonDown) return;
 
     noTone(SPEAKER);
-    for(int i = 0; i < 4; i++) {
+    for(int i = 0; i < INPUTS; i++) {
         if(BUTTONS[i] == sender->pin) {
             digitalWrite(LEDS[i], LOW);
             buttonPressed(i);
@@ -110,9 +134,9 @@ void setupLevel() {
     // check to see if we should increase speed
     if(INCREASE_SPEED && level % INCREASE_SPEED_LEVELS) {
         int mult = level % INCREASE_SPEED_LEVELS;
-        noteDuration -= INCREASE_SPEED_AMOUNT * mult;
-        if(noteDuration < MAX_SPEED) {
-            noteDuration = MAX_SPEED;
+        toneDuration -= INCREASE_SPEED_AMOUNT * mult;
+        if(toneDuration < MAX_SPEED) {
+            toneDuration = MAX_SPEED;
         }
     }
 
@@ -121,12 +145,12 @@ void setupLevel() {
     currentStep = -1;
     Serial.print("Sequence: "); 
     for(int i = 0; i < level; i++) {
-        int step = random(0, 4);
+        int step = random(0, INPUTS);
         Serial.print(step + 1);
         Serial.print(" ");
         levelSequence[i] = step;
         digitalWrite(LEDS[step], HIGH);
-        playTone(NOTES_FOR_BUTTON[step], noteDuration, 0);
+        playTone(TONES_FOR_BUTTON[step], toneDuration, 0);
         digitalWrite(LEDS[step], LOW);
         delay(PAUSE_DURATION);
     }
@@ -135,11 +159,11 @@ void setupLevel() {
 }
 
 /**
-    Plays a note
+    Plays a tone
 */
-void playTone(int note, long toneDuration, long PAUSE_DURATION) {
-    tone(SPEAKER, note, noteDuration);
-    delay(noteDuration);
+void playTone(int frequency, long toneDuration, long PAUSE_DURATION) {
+    tone(SPEAKER, frequency, toneDuration);
+    delay(toneDuration);
     noTone(SPEAKER);
     if(PAUSE_DURATION > 0) delay(PAUSE_DURATION);
 }
@@ -151,7 +175,7 @@ void gameOver() {
     resetGame();
     Serial.println("Game friggin over.");
     digitalWrite(ERROR_LED, HIGH);
-    playTone(ERROR_NOTE, 1000, 500);
+    playTone(ERROR_TONE, 1000, 500);
     delay(NEXT_GAME_PAUSE_DURATION);
     digitalWrite(ERROR_LED, LOW);
     delay(NEXT_GAME_PAUSE_DURATION);
@@ -165,9 +189,9 @@ void gameWon() {
     delay(200);
     Serial.println("You won!");
     for(int i = 0; i < 8; i++) {
-        for(int a = 0; a < 4; a++) {
+        for(int a = 0; a < INPUTS; a++) {
             digitalWrite(LEDS[a], HIGH);
-            tone(SPEAKER, WON_NOTE, 100);
+            tone(SPEAKER, WON_TONE, 100);
             delay(50);
             noTone(SPEAKER);
             digitalWrite(LEDS[a], LOW);
@@ -178,7 +202,7 @@ void gameWon() {
 }
 
 void resetGame() {
-    noteDuration = INITIAL_NOTE_DURATION;
+    toneDuration = INITIAL_TONE_DURATION;
     level = 1;
     inputMode = false;
 }
