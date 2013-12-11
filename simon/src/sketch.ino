@@ -41,7 +41,7 @@ const int BUTTONS[4] = {BUTTON1, BUTTON2, BUTTON3, BUTTON4};
 
 /* other */
 const int SPEAKER = 3;
-const int MAX_LEVELS = 10;
+const int MAX_LEVELS = 50;
 
 
 int levelSequence[10] = {0};                // the level sequence
@@ -59,7 +59,7 @@ bool buttonDown = false;
 void setup() {
     Serial.begin(9600);
     for(int i = 0; i < 4; i++) {
-        Serial.println("Adding button:");
+        Serial.print("Adding button: ");
         Serial.println(BUTTONS[i]);
         ButtonEvent.addButton(BUTTONS[i], onDown, onUp, NULL, 0, NULL, 0);
         //pinMode(BUTTONS[i], INPUT);
@@ -71,10 +71,10 @@ void setup() {
 }
 
 void onDown(ButtonInformation* sender) {
-    Serial.println("onDown() called");
+    //Serial.println("onDown() called");
     if(!inputMode || buttonDown) return;
 
-    Serial.println("onDown succeeded");
+    //Serial.println("onDown succeeded");
 
     for(int i = 0; i < 4; i++) {
         if(BUTTONS[i] == sender->pin) {
@@ -87,9 +87,9 @@ void onDown(ButtonInformation* sender) {
 }
 
 void onUp(ButtonInformation* sender) {
-    Serial.println("onUp() called");
+    //Serial.println("onUp() called");
     if(!inputMode || !buttonDown) return;
-    Serial.println("onUp succeeded");
+    //Serial.println("onUp succeeded");
     noTone(SPEAKER);
     for(int i = 0; i < 4; i++) {
         if(BUTTONS[i] == sender->pin) {
@@ -105,19 +105,21 @@ void onUp(ButtonInformation* sender) {
     Sets up the level sequence
 */
 void setupLevel() {
+    Serial.print("Setting up level: ");
+    Serial.println(level);
     currentStep = -1;
+    Serial.print("Sequence: "); 
     for(int i = 0; i < level; i++) {
         int step = random(0, 4);
-        Serial.write("Level: ");
-        Serial.println(i);
-        Serial.write(": ");
-        Serial.println(step);
+        Serial.print(step + 1);
+        Serial.print(" ");
         levelSequence[i] = step;
         digitalWrite(LEDS[step], HIGH);
         playTone(NOTES_FOR_BUTTON[step], noteDuration, 0);
         digitalWrite(LEDS[step], LOW);
         delay(pauseDuration);
     }
+    Serial.println("");
 }
 
 /**
@@ -139,26 +141,29 @@ void playGameOverSound() {
     playTone(ERROR_NOTE, 1000, 500);
     delay(nextGameMargin);
     digitalWrite(ERROR_LED, LOW);
+    delay(nextGameMargin);
 }
 
 /**
     Plays the game won sound and flashes all the LEDs
 **/
 void playGameWonSound() {
-    for(int i = 0; i < 4; i++) {
-        digitalWrite(LEDS[i], HIGH);
-        playTone(WON_NOTE, 300, 200);
-        digitalWrite(LEDS[i], LOW);
+    delay(200);
+    Serial.println("You won!");
+    for(int i = 0; i < 8; i++) {
+        for(int a = 0; a < 4; a++) {
+            digitalWrite(LEDS[a], HIGH);
+            tone(SPEAKER, WON_NOTE, 100);
+            delay(50);
+            noTone(SPEAKER);
+            digitalWrite(LEDS[a], LOW);
+        }
     }
+    delay(nextGameMargin);
 }
 
 void buttonPressed(int index) {
     currentStep += 1;
-    Serial.println("Button pressed");
-    Serial.println(currentStep);
-    Serial.println(levelSequence[currentStep]);
-    Serial.println(index);
-    Serial.println(level);
     if(index != levelSequence[currentStep]) {
         playGameOverSound();
         inputMode = false;
@@ -170,15 +175,15 @@ void buttonPressed(int index) {
         inputMode = false;
         level += 1;
 
-        Serial.println("Continuing to level:");
-        Serial.println(level); 
-        delay(nextGameMargin);
-
         if(level > MAX_LEVELS) {
             playGameWonSound();
             level = 1;
             inputMode = false;
         }
+
+        Serial.print("Continuing to level:");
+        Serial.println(level); 
+        delay(nextGameMargin);
     }
 }
         
@@ -186,9 +191,7 @@ void buttonPressed(int index) {
 /** Main loop **/
 void loop() {
     if(inputMode == false) {
-        Serial.println("Calling setupLevel()");
         setupLevel();
-        Serial.println("Setting inputMode to true");
         inputMode = true;
     }
 

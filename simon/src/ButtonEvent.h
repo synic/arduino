@@ -50,6 +50,8 @@ struct ButtonInformation {
   unsigned long holdMillisWait;
   unsigned long doubleMillis;
   unsigned long doubleMillisWait;
+  unsigned long lastDebounceTime;
+  int lastButtonState;
   void (*onDown)(ButtonInformation* Sender);
   void (*onUp)(ButtonInformation* Sender);
   void (*onHold)(ButtonInformation* Sender);
@@ -61,6 +63,7 @@ class ButtonEventClass
   public:
     ButtonEventClass();
 	short initialCapacity;
+
 	void addButton(short pin, void (*onDown)(ButtonInformation* Sender), void (*onUp)(ButtonInformation* Sender), void (*onHold)(ButtonInformation* Sender), unsigned long holdMillisWait, void (*onDouble)(ButtonInformation* Sender), unsigned long doubleMillisWait);
 	void addButton(short pin, short analogValue, byte deviation, void (*onDown)(ButtonInformation* Sender), void (*onUp)(ButtonInformation* Sender), void (*onHold)(ButtonInformation* Sender), unsigned long holdMillisWait, void (*onDouble)(ButtonInformation* Sender), unsigned long doubleMillisWait);
 	void loop();

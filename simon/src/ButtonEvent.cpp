@@ -28,6 +28,8 @@
 
 #include "ButtonEvent.h"
 
+unsigned long debounceDelay = 50;
+
 ButtonEventClass::ButtonEventClass() {
 	this->count = 0;
 	this->mallocSize = 0;
@@ -62,6 +64,8 @@ void ButtonEventClass::addButton(short pin, void (*onDown)(ButtonInformation* Se
 	this->currentButton->holdMillisWait = holdMillisWait;
 	this->currentButton->onDouble = onDouble;
 	this->currentButton->doubleMillisWait = doubleMillisWait;
+    this->currentButton->lastDebounceTime = 0;
+    this->currentButton->lastButtonState = LOW;
 	
 	pinMode(this->currentButton->pin, INPUT);
 	
@@ -97,6 +101,8 @@ void ButtonEventClass::addButton(short pin, short analogValue, byte deviation, v
 	this->currentButton->holdMillisWait = holdMillisWait;
 	this->currentButton->onDouble = onDouble;
 	this->currentButton->doubleMillisWait = doubleMillisWait;
+    this->currentButton->lastDebounceTime = 0;
+    this->currentButton->lastButtonState = LOW;
 
 	pinMode(14+this->currentButton->pin, INPUT);
 	digitalWrite((14+this->currentButton->pin), HIGH);
@@ -113,7 +119,17 @@ void ButtonEventClass::loop() {
 		this->setPosition(this->index);
 		
 		if (this->currentButton->analogValue == NOT_ANALOG) {
-			this->nextPressed = (digitalRead(this->currentButton->pin) == HIGH);
+            int reading = digitalRead(this->currentButton->pin);
+            if(reading != this->currentButton->lastButtonState) {
+                this->currentButton->lastDebounceTime = millis();
+            }
+
+            if((millis() - this->currentButton->lastDebounceTime) > debounceDelay) {
+                this->nextPressed = reading == HIGH;
+            }
+
+            this->currentButton->lastButtonState = reading;
+
 		} else {
 			this->nextAnalogRead = analogRead(this->currentButton->pin);
 			this->nextPressed = ((this->nextAnalogRead >= (this->currentButton->analogValue-this->currentButton->deviation)) && (this->nextAnalogRead <= (this->currentButton->analogValue+this->currentButton->deviation)));
