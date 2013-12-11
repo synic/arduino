@@ -42,16 +42,22 @@ const int BUTTONS[4] = {BUTTON1, BUTTON2, BUTTON3, BUTTON4};
 /* other */
 const int SPEAKER = 3;
 const int MAX_LEVELS = 50;
-
+const int NEXT_GAME_PAUSE_DURATION = 800; 
+const bool INCREASE_SPEED = true;
+const int INCREASE_SPEED_LEVELS = 5; // number of levels before speed increase
+const int INCREASE_SPEED_AMOUNT = 30; // number of ms to increase the speed
+const int MAX_SPEED = 200;           // max game speed
+const int INPUT_TIMEOUT = 6000;      // amount of time you have to move
+const int INITIAL_NOTE_DURATION = 500;
+const int PAUSE_DURATION = 200;
 
 int levelSequence[10] = {0};                // the level sequence
 int level = 1;                              // the current level
 bool inputMode = false;
 int currentStep = -1;
-int noteDuration = 400;
-int pauseDuration = 200;
-int nextGameMargin = 800;
+int noteDuration = INITIAL_NOTE_DURATION;
 bool buttonDown = false;
+unsigned long lastButtonPress = 0;
 
 /**
     Sets up the app
@@ -62,7 +68,6 @@ void setup() {
         Serial.print("Adding button: ");
         Serial.println(BUTTONS[i]);
         ButtonEvent.addButton(BUTTONS[i], onDown, onUp, NULL, 0, NULL, 0);
-        //pinMode(BUTTONS[i], INPUT);
         pinMode(LEDS[i], OUTPUT);
     }
 
@@ -71,25 +76,22 @@ void setup() {
 }
 
 void onDown(ButtonInformation* sender) {
-    //Serial.println("onDown() called");
     if(!inputMode || buttonDown) return;
-
-    //Serial.println("onDown succeeded");
 
     for(int i = 0; i < 4; i++) {
         if(BUTTONS[i] == sender->pin) {
             digitalWrite(LEDS[i], HIGH);
             tone(SPEAKER, NOTES_FOR_BUTTON[i]);
             buttonDown = true;
+            lastButtonPress = millis();
             return;
         }
     }
 }
 
 void onUp(ButtonInformation* sender) {
-    //Serial.println("onUp() called");
     if(!inputMode || !buttonDown) return;
-    //Serial.println("onUp succeeded");
+
     noTone(SPEAKER);
     for(int i = 0; i < 4; i++) {
         if(BUTTONS[i] == sender->pin) {
@@ -105,6 +107,15 @@ void onUp(ButtonInformation* sender) {
     Sets up the level sequence
 */
 void setupLevel() {
+    // check to see if we should increase speed
+    if(INCREASE_SPEED && level % INCREASE_SPEED_LEVELS) {
+        int mult = level % INCREASE_SPEED_LEVELS;
+        noteDuration -= INCREASE_SPEED_AMOUNT * mult;
+        if(noteDuration < MAX_SPEED) {
+            noteDuration = MAX_SPEED;
+        }
+    }
+
     Serial.print("Setting up level: ");
     Serial.println(level);
     currentStep = -1;
@@ -117,37 +128,40 @@ void setupLevel() {
         digitalWrite(LEDS[step], HIGH);
         playTone(NOTES_FOR_BUTTON[step], noteDuration, 0);
         digitalWrite(LEDS[step], LOW);
-        delay(pauseDuration);
+        delay(PAUSE_DURATION);
     }
     Serial.println("");
+    lastButtonPress = millis();
 }
 
 /**
     Plays a note
 */
-void playTone(int note, long toneDuration, long pauseDuration) {
+void playTone(int note, long toneDuration, long PAUSE_DURATION) {
     tone(SPEAKER, note, noteDuration);
     delay(noteDuration);
     noTone(SPEAKER);
-    if(pauseDuration > 0) delay(pauseDuration);
+    if(PAUSE_DURATION > 0) delay(PAUSE_DURATION);
 }
 
 /**
     Plays the game over sound and lights the red error LED
 */
-void playGameOverSound() {
+void gameOver() {
+    resetGame();
     Serial.println("Game friggin over.");
     digitalWrite(ERROR_LED, HIGH);
     playTone(ERROR_NOTE, 1000, 500);
-    delay(nextGameMargin);
+    delay(NEXT_GAME_PAUSE_DURATION);
     digitalWrite(ERROR_LED, LOW);
-    delay(nextGameMargin);
+    delay(NEXT_GAME_PAUSE_DURATION);
 }
 
 /**
     Plays the game won sound and flashes all the LEDs
 **/
-void playGameWonSound() {
+void gameWon() {
+    resetGame();
     delay(200);
     Serial.println("You won!");
     for(int i = 0; i < 8; i++) {
@@ -159,15 +173,20 @@ void playGameWonSound() {
             digitalWrite(LEDS[a], LOW);
         }
     }
-    delay(nextGameMargin);
+
+    delay(NEXT_GAME_PAUSE_DURATION);
+}
+
+void resetGame() {
+    noteDuration = INITIAL_NOTE_DURATION;
+    level = 1;
+    inputMode = false;
 }
 
 void buttonPressed(int index) {
     currentStep += 1;
     if(index != levelSequence[currentStep]) {
-        playGameOverSound();
-        inputMode = false;
-        level = 1;
+        gameOver();
         return;
     }
 
@@ -176,14 +195,13 @@ void buttonPressed(int index) {
         level += 1;
 
         if(level > MAX_LEVELS) {
-            playGameWonSound();
-            level = 1;
-            inputMode = false;
+            gameWon();
+            return;
         }
 
         Serial.print("Continuing to level:");
         Serial.println(level); 
-        delay(nextGameMargin);
+        delay(NEXT_GAME_PAUSE_DURATION);
     }
 }
         
@@ -193,6 +211,13 @@ void loop() {
     if(inputMode == false) {
         setupLevel();
         inputMode = true;
+    }
+    else {
+        // check to see if they've taken to long to press a button
+        if(millis() - lastButtonPress > INPUT_TIMEOUT) {
+            gameOver();
+            return;
+        }
     }
 
     ButtonEvent.loop();
