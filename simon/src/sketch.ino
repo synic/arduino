@@ -22,40 +22,40 @@
 /******************************************************************************
 *                                 LED SETUP                                   *
 ******************************************************************************/
-const int LED1 = 12;
-const int LED2 = 11;
+const int LED1 = 8;
+const int LED2 = 9;
 const int LED3 = 10;
-const int LED4 = 9;
+const int LED4 = 11;
 // optional, by default LED5 won't be used, unless you change INPUTS below to
 // 5 as well.
-const int LED5 = 8; 
-const int ERROR_LED = 7;
+const int LED5 = 13; 
+const int ERROR_LED = 12;
 const int LEDS[5] = {LED1, LED2, LED3, LED4, LED5};  // the four LED output pins
 
 /******************************************************************************
 *                                 BUTTON SETUP                                *
 ******************************************************************************/
-const int BUTTON1 = 5;
-const int BUTTON2 = 2;
-const int BUTTON3 = 6;
-const int BUTTON4 = 4;
+const int BUTTON1 = 2;
+const int BUTTON2 = 3;
+const int BUTTON3 = 4;
+const int BUTTON4 = 5;
 // optional, by default BUTTON5 won't be used, unless you change INPUTS below to
 // 5 as well.
-const int BUTTON5 = 2;
+const int BUTTON5 = 6;
 const int BUTTONS[5] = {BUTTON1, BUTTON2, BUTTON3, BUTTON4, BUTTON5}; 
 
 /******************************************************************************
 *                                 TONE SETUP                                  *
 ******************************************************************************/
-const int TONES_FOR_BUTTON[5] = {NOTE_E3, NOTE_CSHARP3, NOTE_A3, NOTE_E2,
-    NOTE_A2};
-const int ERROR_TONE = NOTE_C2;
-const int WON_TONE = NOTE_A3;
+const int TONES_FOR_BUTTON[5] = {NOTE_E5, NOTE_CS5, NOTE_A5, NOTE_E4,
+    NOTE_A4};
+const int ERROR_TONE = NOTE_C4;
+const int WON_TONE = NOTE_A6;
 
 /******************************************************************************
 *                                SPEAKER SETUP                                *
 ******************************************************************************/
-const int SPEAKER = 3;
+const int SPEAKER = 7;
 
 /******************************************************************************
 *                                   OTHER                                     *
@@ -68,11 +68,11 @@ const int INPUTS = 4;
 const int MAX_LEVELS = 50;
 const int NEXT_GAME_PAUSE_DURATION = 800; 
 const bool INCREASE_SPEED = true;
-const int INCREASE_SPEED_LEVELS = 5; // number of levels before speed increase
-const int INCREASE_SPEED_AMOUNT = 30; // number of ms to increase the speed
+const int INCREASE_SPEED_LEVELS = 3; // number of levels before speed increase
+const int INCREASE_SPEED_AMOUNT = 50; // number of ms to increase the speed
 const int MAX_SPEED = 200;           // max game speed
 const int INPUT_TIMEOUT = 6000;      // amount of time you have to move
-const int INITIAL_TONE_DURATION = 500;
+const int INITIAL_TONE_DURATION = 400;
 const int PAUSE_DURATION = 200;
 
 int levelSequence[10] = {0};                // the level sequence
@@ -132,9 +132,11 @@ void onUp(ButtonInformation* sender) {
 */
 void setupLevel() {
     // check to see if we should increase speed
-    if(INCREASE_SPEED && level % INCREASE_SPEED_LEVELS) {
-        int mult = level % INCREASE_SPEED_LEVELS;
+    if(INCREASE_SPEED && level % INCREASE_SPEED_LEVELS == 0) {
+        int mult = level / INCREASE_SPEED_LEVELS;
         toneDuration -= INCREASE_SPEED_AMOUNT * mult;
+        Serial.print("Decreasing tone duration to: ");
+        Serial.println(toneDuration);
         if(toneDuration < MAX_SPEED) {
             toneDuration = MAX_SPEED;
         }

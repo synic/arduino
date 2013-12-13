@@ -28,7 +28,6 @@
 #define NOTE_AS2 117
 #define NOTE_B2  123
 #define NOTE_C3  131
-#define NOTE_CSHARP3 138
 #define NOTE_CS3 139
 #define NOTE_D3  147
 #define NOTE_DS3 156
