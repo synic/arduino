@@ -47,10 +47,10 @@ const int BUTTONS[5] = {BUTTON1, BUTTON2, BUTTON3, BUTTON4, BUTTON5};
 /******************************************************************************
 *                                 TONE SETUP                                  *
 ******************************************************************************/
-const int TONES_FOR_BUTTON[5] = {NOTE_E5, NOTE_CS5, NOTE_A5, NOTE_E4,
-    NOTE_A4};
-const int ERROR_TONE = NOTE_C4;
-const int WON_TONE = NOTE_A6;
+const int TONES_FOR_BUTTON[5] = {NOTE_E3, NOTE_CS3, NOTE_A3, NOTE_E2,
+    NOTE_A3};
+const int ERROR_TONE = NOTE_C3;
+const int WON_TONE = NOTE_A5;
 
 /******************************************************************************
 *                                SPEAKER SETUP                                *
@@ -69,10 +69,10 @@ const int MAX_LEVELS = 50;
 const int NEXT_GAME_PAUSE_DURATION = 800; 
 const bool INCREASE_SPEED = true;
 const int INCREASE_SPEED_LEVELS = 3; // number of levels before speed increase
-const int INCREASE_SPEED_AMOUNT = 50; // number of ms to increase the speed
+const int INCREASE_SPEED_AMOUNT = 20; // number of ms to increase the speed
 const int MAX_SPEED = 200;           // max game speed
 const int INPUT_TIMEOUT = 6000;      // amount of time you have to move
-const int INITIAL_TONE_DURATION = 400;
+const int INITIAL_TONE_DURATION = 500;
 const int PAUSE_DURATION = 200;
 
 int levelSequence[10] = {0};                // the level sequence
@@ -176,11 +176,15 @@ void playTone(int frequency, long toneDuration, long PAUSE_DURATION) {
 void gameOver() {
     resetGame();
     Serial.println("Game friggin over.");
-    digitalWrite(ERROR_LED, HIGH);
+    for(int a = 0; a < INPUTS; a++) {
+        digitalWrite(LEDS[a], HIGH);
+    }
     playTone(ERROR_TONE, 1000, 500);
     delay(NEXT_GAME_PAUSE_DURATION);
-    digitalWrite(ERROR_LED, LOW);
     delay(NEXT_GAME_PAUSE_DURATION);
+    for(int a = 0; a < INPUTS; a++) {
+        digitalWrite(LEDS[a], LOW);
+    }
 }
 
 /**
