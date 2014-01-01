@@ -1,0 +1,6 @@
+#!/bin/sh
+
+ino build -m trinket5
+echo "Put the trinket into upload mode by pressing the reset button, and then press enter..."
+read 1
+avrdude -c usbtiny -p attiny85 -U flash:w:.build/trinket5/firmware.hex
