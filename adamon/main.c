@@ -1,6 +1,8 @@
 #define F_CPU 8000000UL
+#include <avr/eeprom.h>
 #include <avr/io.h>
 #include <util/delay.h>
+#include <stdlib.h>
 #include "pitches.h"
 
 #define LED1 PA3
@@ -26,13 +28,14 @@ const int TONES_FOR_BUTTON[5] = {NOTE_E3, NOTE_CS3, NOTE_A3, NOTE_E2,
 const int LEDS[4] = {LED1, LED2, LED3, LED4};
 const int BUTTONS[4] = {BUTTON1, BUTTON2, BUTTON3, BUTTON4};
 
-int levelSequence[10];
+int level_sequence[10];
 int level;
-int inputMode;
-int currentStep;
-int toneDuration;
-int buttonDown;
-unsigned long lastButtonPress;
+int input_mode;
+int current_step;
+int tone_duration;
+int button_down;
+unsigned long last_button_press;
+unsigned int randint;
 
 void _delay(int delay) {
     for(int i = 0; i < delay; i++) _delay_ms(1);
@@ -47,14 +50,41 @@ void tone(int frequency, int delay) {
     TCCR0B = 0x00;                       // turn the timer CTC mode off
 }
 
+void setup_level() {
+    if(INCREASE_SPEED && level % INCREASE_SPEED_LEVELS == 0) {
+        int mult = level / INCREASE_SPEED_LEVELS;
+        tone_duration -= INCREASE_SPEED_AMOUNT * mult;
+        if(tone_duration < MAX_SPEED) {
+            tone_duration = MAX_SPEED;
+        }
+    }
+
+    current_step = -1;
+
+    for(int i = 0; i < level; i++) {
+        int step = rand() % 4;
+        level_sequence[i] = step;
+        led_on(LEDS[step]);
+        tone(TONES_FOR_BUTTON[step], tone_duration, 0);
+        led_off(LEDS[step]);
+        _delay(PAUSE_DURATION);
+    }
+
+    last_button_press = 
+}
+
 int main(void) {
+    // get a random number to seed with
+    srand(eeprom_read_word(&randint));
+    eeprom_write_word(&randint, rand());
+
     // initialize variables
     level = 1;
-    inputMode = 0;
-    currentStep = -1;
-    toneDuration = INITIAL_TONE_DURATION;
-    buttonDown = 0;
-    lastButtonPress = 0L;
+    input_mode = 0;
+    current_step = -1;
+    tone_duration = INITIAL_TONE_DURATION;
+    button_down = 0;
+    last_button_press = 0L;
     DDRB = _BV(PB2); // set PB2 as an output
 
     
