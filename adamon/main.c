@@ -51,15 +51,6 @@ int button_down;
 unsigned long last_button_press;
 unsigned int randint;
 
-void _delay(int delay);
-void tone(int frequency, int delay);
-void led_on(int led);
-void led_off(int led);
-void setup_level(void);
-void reset_game(void);
-void game_over(void);
-void game_won(void);
-
 void _delay(int delay) {
     for(int i = 0; i < delay; i++) _delay_ms(1);
 }
@@ -85,7 +76,7 @@ void led_on(int led) {
 }
 
 void led_off(int led) {
-    PORTA |= (0 << led);
+    PORTA &= ~(1 << led);
 }
 
 void setup_level(void) {
@@ -152,7 +143,7 @@ void button_press(int index) {
 
 void button_release(int index) {
     // turn LED off for this button
-    PORTA |= (0 << LEDS[index]);
+    PORTA &= ~(1 << LEDS[index]);
 
     // turn tone off for this button
     no_tone();
