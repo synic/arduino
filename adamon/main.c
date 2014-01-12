@@ -164,6 +164,7 @@ void game_over(void) {
     for(int i = 0; i < 4; i++) {
         led_off(LEDS[i]);
     }
+    _delay(NEXT_GAME_PAUSE_DURATION * 2);
 }
 
 void game_won(void) {
