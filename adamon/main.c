@@ -4,6 +4,7 @@
 #include <util/delay.h>
 #include <stdlib.h>
 
+// musical notes
 #define NOTE_E3 165
 #define NOTE_CS3 139
 #define NOTE_A3 220
@@ -11,11 +12,13 @@
 #define NOTE_C3 131
 #define NOTE_A5 880
 
+// define led pins
 #define LED1 PA3
 #define LED2 PA2
 #define LED3 PA1
 #define LED4 PA0
 
+// define button pins
 #define BUTTON1 PA7
 #define BUTTON2 PA6
 #define BUTTON3 PA5
@@ -25,6 +28,7 @@
 #define GAMEMODE1 PB1
 #define GAMEMODE2 PB0
 
+// various game constants
 #define ERROR_TONE NOTE_C3
 #define WON_TONE NOTE_A5
 #define MAX_LEVELS 50
@@ -34,21 +38,21 @@
 #define PAUSE_DURATION 200
 #define INITIAL_TONE_DURATION 500
 #define MAX_SPEED 200
+#define MAX_LOOPS 200000UL
 
-const int TONES_FOR_BUTTON[5] = {NOTE_E3, NOTE_CS3, NOTE_A3, NOTE_E2,
+const unsigned int TONES_FOR_BUTTON[5] = {NOTE_E3, NOTE_CS3, NOTE_A3, NOTE_E2,
     NOTE_A3};
-const int LEDS[4] = {LED1, LED2, LED3, LED4};
-const int BUTTONS[4] = {BUTTON1, BUTTON2, BUTTON3, BUTTON4};
+const uint8_t LEDS[4] = {LED1, LED2, LED3, LED4};
+const uint8_t BUTTONS[4] = {BUTTON1, BUTTON2, BUTTON3, BUTTON4};
 
-int button_pressed[4];
-int level_sequence[10];
-int increase_speed;
-int level;
-int input_mode;
-int current_step;
-int tone_duration;
-int button_down;
-unsigned long last_button_press;
+uint8_t game_mode;
+uint8_t button_pressed[4];
+uint8_t level_sequence[10];
+uint8_t level;
+uint8_t input_mode;
+unsigned long loop_count;
+uint8_t current_step;
+unsigned int tone_duration;
 unsigned int randint;
 
 void _delay(int delay) {
@@ -56,13 +60,12 @@ void _delay(int delay) {
 }
 
 void no_tone(void) {
-    PORTB |= (0 << PB2);
-    TCCR0B = 0x00;
+    PORTB &= ~_BV(PB2);
+    TCCR0B = 0x00;                       // turn timer off completely
 }
 
 void tone(int frequency, int delay) {
     OCR0A = ((F_CPU / 1024.0) / (frequency * 2.0)) - 1;
-    TCCR0A = _BV(WGM01) | _BV(COM0A0);   // toggle output, ctc mode
     TCCR0B = _BV(CS02) | _BV(CS00);      // set prescaler to 1024 
 
     if(delay > -1) {
@@ -72,14 +75,41 @@ void tone(int frequency, int delay) {
 }
 
 void led_on(int led) {
-    PORTA |= (1 << led);
+    PORTA |= _BV(led);
 }
 
 void led_off(int led) {
-    PORTA &= ~(1 << led);
+    PORTA &= ~_BV(led);
+}
+
+/*
+ * Checks the game mode dip switch, and sets the game type accordingly.  There
+ * are four different game modes:
+ *
+ * 1. Progressing steps, not increasing speed (easy, PB0 and PB1 off)
+ * 2  Progressing steps, increasing speed (medium, PB0 on PB1 off)
+ * 3. Random steps, not increasing speed (hard, PB0 off and PB1 on)
+ * 4. Random steps, increasing speed (super hard, PB0 and PB1 on)
+ */
+void setup_gamemode(void) {
+    if(!bit_is_clear(PINB, PB0) && !bit_is_clear(PINB, PB1)) 
+        game_mode = 0;
+    else if(bit_is_clear(PINB, PB0) && !bit_is_clear(PINB, PB1)) 
+        game_mode = 1;
+    else if(!bit_is_clear(PINB, PB0) && bit_is_clear(PINB, PB1))
+        game_mode = 2;
+    else if(bit_is_clear(PINB, PB0) && bit_is_clear(PINB, PB1)) 
+        game_mode = 3;
+    else
+        game_mode = 0;
 }
 
 void setup_level(void) {
+    loop_count = 0;
+    setup_gamemode();
+
+    uint8_t increase_speed = (game_mode == 1 || game_mode == 3);
+
     if(increase_speed && level % INCREASE_SPEED_LEVELS == 0) {
         int mult = level / INCREASE_SPEED_LEVELS;
         tone_duration -= INCREASE_SPEED_AMOUNT * mult;
@@ -89,9 +119,26 @@ void setup_level(void) {
     }
 
     current_step = -1;
+    uint8_t start_sequence = 0;
+    if(game_mode < 2) {
+        start_sequence = level - 1;
+    }
 
     for(int i = 0; i < level; i++) {
-        int step = rand() % 4;
+        int step;
+
+        if(start_sequence > 0 && game_mode < 2) {
+            if(start_sequence == i) {
+                step = rand() % 4;
+            }
+            else {
+                step = level_sequence[i];
+            }
+        }
+        else {
+            step = rand() % 4;
+        }
+
         level_sequence[i] = step;
         led_on(LEDS[step]);
         tone(TONES_FOR_BUTTON[step], tone_duration);
@@ -104,6 +151,7 @@ void reset_game(void) {
     tone_duration = INITIAL_TONE_DURATION;
     level = 1;
     input_mode = 0;
+    loop_count = 0;
 }
 
 void game_over(void) {
@@ -135,7 +183,7 @@ void game_won(void) {
 
 void button_press(int index) {
     // turn LED on for this button
-    PORTA |= _BV(LEDS[index]);
+    led_on(LEDS[index]);
 
     // play tone for this button
     tone(TONES_FOR_BUTTON[index], -1);
@@ -143,7 +191,7 @@ void button_press(int index) {
 
 void button_release(int index) {
     // turn LED off for this button
-    PORTA &= ~(1 << LEDS[index]);
+    led_off(LEDS[index]);
 
     // turn tone off for this button
     no_tone();
@@ -186,6 +234,10 @@ void check_button_press(int index) {
 }
 
 int main(void) {
+    // do initial set up of the timer - set it up to toggle OC0A output (which
+    // is PB2), and set it to ctc mode.
+    TCCR0A = _BV(WGM01) | _BV(COM0A0);   
+
     // set PB2 as an output
     DDRB = _BV(PB2); 
 
@@ -206,12 +258,10 @@ int main(void) {
 
     // initialize variables
     level = 1;
+    game_mode = 0;
     input_mode = 0;
     current_step = -1;
     tone_duration = INITIAL_TONE_DURATION;
-    button_down = 0;
-    increase_speed = 1;
-    last_button_press = 0L;
     for(int i = 0; i < 4; i++) button_pressed[i] = 0;
 
     // loop forever
@@ -225,6 +275,12 @@ int main(void) {
             for(int i = 0; i < 4; i++) {
                 check_button_press(i);
             }
+
+            if(loop_count > MAX_LOOPS) {
+                game_over();
+            }
+
+            loop_count++;
         }
     }
 }
